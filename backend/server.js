@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -34,11 +35,23 @@ const cardSchema = new mongoose.Schema({
   holderName: { type: String, required: true },
   balance: { type: Number, default: 0 },
   lastTopup: { type: Number, default: 0 },
+  passcode: { type: String, default: null }, // 6-digit passcode (hashed)
+  passcodeSet: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
 
 const Card = mongoose.model('Card', cardSchema);
+
+// Passcode helper functions
+async function hashPasscode(passcode) {
+  const saltRounds = 10;
+  return await bcrypt.hash(passcode, saltRounds);
+}
+
+async function verifyPasscode(inputPasscode, hashedPasscode) {
+  return await bcrypt.compare(inputPasscode, hashedPasscode);
+}
 
 // Transaction Schema
 const transactionSchema = new mongoose.Schema({
@@ -54,14 +67,50 @@ const transactionSchema = new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
-// Product catalog
+// Product catalog with categories
 const PRODUCTS = [
-  { id: 'coffee', name: 'Coffee', price: 2.50, icon: '☕' },
-  { id: 'sandwich', name: 'Sandwich', price: 5.00, icon: '🥪' },
-  { id: 'water', name: 'Water Bottle', price: 1.00, icon: '💧' },
-  { id: 'snack', name: 'Snack Pack', price: 3.00, icon: '🍿' },
-  { id: 'juice', name: 'Fresh Juice', price: 3.50, icon: '🧃' },
-  { id: 'salad', name: 'Salad Bowl', price: 6.00, icon: '🥗' }
+  // Food & Beverages
+  { id: 'coffee', name: 'Coffee', price: 2.50, icon: '☕', category: 'food' },
+  { id: 'sandwich', name: 'Sandwich', price: 5.00, icon: '🥪', category: 'food' },
+  { id: 'water', name: 'Water Bottle', price: 1.00, icon: '💧', category: 'food' },
+  { id: 'snack', name: 'Snack Pack', price: 3.00, icon: '🍿', category: 'food' },
+  { id: 'juice', name: 'Fresh Juice', price: 3.50, icon: '🧃', category: 'food' },
+  { id: 'salad', name: 'Salad Bowl', price: 6.00, icon: '🥗', category: 'food' },
+  
+  // Rwandan Local Foods
+  { id: 'brochette', name: 'Brochette', price: 4.00, icon: '�串', category: 'rwandan' },
+  { id: 'isombe', name: 'Isombe', price: 3.50, icon: '🥬', category: 'rwandan' },
+  { id: 'ubugari', name: 'Ubugari', price: 2.00, icon: '🍚', category: 'rwandan' },
+  { id: 'sambaza', name: 'Sambaza (Fried)', price: 3.00, icon: '🐟', category: 'rwandan' },
+  { id: 'akabenzi', name: 'Akabenzi (Pork)', price: 5.50, icon: '🥓', category: 'rwandan' },
+  { id: 'ikivuguto', name: 'Ikivuguto (Yogurt)', price: 1.50, icon: '🥛', category: 'rwandan' },
+  { id: 'agatogo', name: 'Agatogo', price: 4.50, icon: '🍲', category: 'rwandan' },
+  { id: 'urwagwa', name: 'Urwagwa (Banana Beer)', price: 2.50, icon: '🍺', category: 'rwandan' },
+  
+  // Snacks & Drinks
+  { id: 'fanta', name: 'Fanta', price: 1.20, icon: '🥤', category: 'drinks' },
+  { id: 'primus', name: 'Primus Beer', price: 2.00, icon: '🍺', category: 'drinks' },
+  { id: 'mutzig', name: 'Mutzig Beer', price: 2.00, icon: '🍺', category: 'drinks' },
+  { id: 'inyange-juice', name: 'Inyange Juice', price: 1.50, icon: '🧃', category: 'drinks' },
+  { id: 'chips', name: 'Chips', price: 2.50, icon: '🍟', category: 'food' },
+  
+  // Domain Registration Services
+  { id: 'domain-com', name: '.com Domain', price: 12.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-net', name: '.net Domain', price: 11.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-org', name: '.org Domain', price: 10.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-io', name: '.io Domain', price: 35.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-dev', name: '.dev Domain', price: 15.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-app', name: '.app Domain', price: 18.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-ai', name: '.ai Domain', price: 80.00, icon: '🤖', category: 'domains' },
+  { id: 'domain-xyz', name: '.xyz Domain', price: 8.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-co', name: '.co Domain', price: 25.00, icon: '🌐', category: 'domains' },
+  { id: 'domain-rw', name: '.rw Domain', price: 20.00, icon: '🇷🇼', category: 'domains' },
+  
+  // Digital Services
+  { id: 'hosting-basic', name: 'Basic Hosting (1mo)', price: 5.00, icon: '☁️', category: 'services' },
+  { id: 'hosting-pro', name: 'Pro Hosting (1mo)', price: 15.00, icon: '☁️', category: 'services' },
+  { id: 'ssl-cert', name: 'SSL Certificate', price: 10.00, icon: '🔒', category: 'services' },
+  { id: 'email-pro', name: 'Professional Email', price: 8.00, icon: '📧', category: 'services' }
 ];
 
 // Topics
@@ -69,6 +118,7 @@ const TOPIC_STATUS = `rfid/${TEAM_ID}/card/status`;
 const TOPIC_BALANCE = `rfid/${TEAM_ID}/card/balance`;
 const TOPIC_TOPUP = `rfid/${TEAM_ID}/card/topup`;
 const TOPIC_PAYMENT = `rfid/${TEAM_ID}/card/payment`;
+const TOPIC_REMOVED = `rfid/${TEAM_ID}/card/removed`;
 
 // MQTT Client Setup
 const mqttClient = mqtt.connect(MQTT_BROKER);
@@ -78,6 +128,7 @@ mqttClient.on('connect', () => {
   mqttClient.subscribe(TOPIC_STATUS);
   mqttClient.subscribe(TOPIC_BALANCE);
   mqttClient.subscribe(TOPIC_PAYMENT);
+  mqttClient.subscribe(TOPIC_REMOVED);
 });
 
 mqttClient.on('message', (topic, message) => {
@@ -91,6 +142,8 @@ mqttClient.on('message', (topic, message) => {
       io.emit('card-balance', payload);
     } else if (topic === TOPIC_PAYMENT) {
       io.emit('payment-result', payload);
+    } else if (topic === TOPIC_REMOVED) {
+      io.emit('card-removed', payload);
     }
   } catch (err) {
     console.error('Failed to parse MQTT message:', err);
@@ -99,7 +152,7 @@ mqttClient.on('message', (topic, message) => {
 
 // HTTP Endpoints
 app.post('/topup', async (req, res) => {
-  const { uid, amount, holderName } = req.body;
+  const { uid, amount, holderName, passcode } = req.body;
 
   if (!uid || amount === undefined) {
     return res.status(400).json({ error: 'UID and amount are required' });
@@ -114,7 +167,23 @@ app.post('/topup', async (req, res) => {
       if (!holderName) {
         return res.status(400).json({ error: 'Holder name is required for new cards' });
       }
-      card = new Card({ uid, holderName, balance: amount, lastTopup: amount });
+      
+      // For new cards, passcode is required
+      if (!passcode || !/^\d{6}$/.test(passcode)) {
+        return res.status(400).json({ error: 'A 6-digit passcode is required for new cards' });
+      }
+      
+      // Hash the passcode
+      const hashedPasscode = await hashPasscode(passcode);
+      
+      card = new Card({ 
+        uid, 
+        holderName, 
+        balance: amount, 
+        lastTopup: amount,
+        passcode: hashedPasscode,
+        passcodeSet: true
+      });
     } else {
       // Cumulative topup: add to existing balance
       card.balance += amount;
@@ -170,13 +239,37 @@ app.post('/topup', async (req, res) => {
 
 // Payment / Debit endpoint
 app.post('/pay', async (req, res) => {
-  const { uid, productId, amount, description } = req.body;
+  const { uid, productId, amount, description, passcode } = req.body;
 
   if (!uid || (!productId && amount === undefined)) {
     return res.status(400).json({ error: 'UID and product or amount are required' });
   }
 
   try {
+    // Find card first to check passcode requirement
+    const card = await Card.findOne({ uid });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found. Please top up first.' });
+    }
+    
+    // Verify passcode if set
+    if (card.passcodeSet) {
+      if (!passcode) {
+        return res.status(401).json({ 
+          error: 'Passcode required for this card',
+          passcodeRequired: true
+        });
+      }
+      
+      const isValid = await verifyPasscode(passcode, card.passcode);
+      if (!isValid) {
+        return res.status(401).json({ 
+          error: 'Incorrect passcode',
+          passcodeRequired: true
+        });
+      }
+    }
+    
     // Resolve amount from product catalog or use direct amount
     let payAmount = amount;
     let payDescription = description || 'Payment';
@@ -192,12 +285,6 @@ app.post('/pay', async (req, res) => {
 
     if (!payAmount || payAmount <= 0) {
       return res.status(400).json({ error: 'Invalid payment amount' });
-    }
-
-    // Find card
-    const card = await Card.findOne({ uid });
-    if (!card) {
-      return res.status(404).json({ error: 'Card not found. Please top up first.' });
     }
 
     // Check sufficient balance
@@ -282,6 +369,119 @@ app.post('/pay', async (req, res) => {
 // Products catalog endpoint
 app.get('/products', (req, res) => {
   res.json(PRODUCTS);
+});
+
+// Set passcode for a card
+app.post('/card/:uid/set-passcode', async (req, res) => {
+  const { passcode } = req.body;
+  
+  if (!passcode || !/^\d{6}$/.test(passcode)) {
+    return res.status(400).json({ error: 'Passcode must be exactly 6 digits' });
+  }
+  
+  try {
+    const card = await Card.findOne({ uid: req.params.uid });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    
+    if (card.passcodeSet) {
+      return res.status(400).json({ error: 'Passcode already set. Use change-passcode endpoint to update.' });
+    }
+    
+    card.passcode = await hashPasscode(passcode);
+    card.passcodeSet = true;
+    card.updatedAt = Date.now();
+    await card.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Passcode set successfully',
+      passcodeSet: true
+    });
+  } catch (err) {
+    console.error('Set passcode error:', err);
+    res.status(500).json({ error: 'Failed to set passcode' });
+  }
+});
+
+// Change passcode (requires old passcode)
+app.post('/card/:uid/change-passcode', async (req, res) => {
+  const { oldPasscode, newPasscode } = req.body;
+  
+  if (!oldPasscode || !newPasscode) {
+    return res.status(400).json({ error: 'Both old and new passcodes are required' });
+  }
+  
+  if (!/^\d{6}$/.test(newPasscode)) {
+    return res.status(400).json({ error: 'New passcode must be exactly 6 digits' });
+  }
+  
+  try {
+    const card = await Card.findOne({ uid: req.params.uid });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    
+    if (!card.passcodeSet) {
+      return res.status(400).json({ error: 'No passcode set. Use set-passcode endpoint first.' });
+    }
+    
+    const isValid = await verifyPasscode(oldPasscode, card.passcode);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Incorrect old passcode' });
+    }
+    
+    card.passcode = await hashPasscode(newPasscode);
+    card.updatedAt = Date.now();
+    await card.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Passcode changed successfully'
+    });
+  } catch (err) {
+    console.error('Change passcode error:', err);
+    res.status(500).json({ error: 'Failed to change passcode' });
+  }
+});
+
+// Verify passcode
+app.post('/card/:uid/verify-passcode', async (req, res) => {
+  const { passcode } = req.body;
+  
+  if (!passcode || !/^\d{6}$/.test(passcode)) {
+    return res.status(400).json({ error: 'Passcode must be exactly 6 digits', valid: false });
+  }
+  
+  try {
+    const card = await Card.findOne({ uid: req.params.uid });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found', valid: false });
+    }
+    
+    if (!card.passcodeSet) {
+      return res.status(400).json({ error: 'No passcode set for this card', valid: false });
+    }
+    
+    const isValid = await verifyPasscode(passcode, card.passcode);
+    
+    if (isValid) {
+      res.json({ 
+        success: true, 
+        valid: true,
+        message: 'Passcode verified'
+      });
+    } else {
+      res.status(401).json({ 
+        error: 'Incorrect passcode', 
+        valid: false 
+      });
+    }
+  } catch (err) {
+    console.error('Verify passcode error:', err);
+    res.status(500).json({ error: 'Failed to verify passcode', valid: false });
+  }
 });
 
 // Get card details
