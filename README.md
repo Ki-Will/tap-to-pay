@@ -1,4 +1,4 @@
-# IoT RFID Tap-to-Pay System - Team Shield
+# IoT RFID Tap-to-Pay System - Team RDF
 
 A complete RFID-based payment system with real-time card management, secure passcode authentication, marketplace shopping, transaction tracking, and a modern Mastercard-styled dashboard interface.
 
