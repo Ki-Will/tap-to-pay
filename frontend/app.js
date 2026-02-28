@@ -1,6 +1,11 @@
 const socket = io(BACKEND_URL);
 
-// ==================== DOM Elements ====================
+// ==================== Helper Functions ====================
+function createIcon(svgString) {
+  const div = document.createElement('div');
+  div.innerHTML = svgString.trim();
+  return div.firstElementChild || document.createTextNode('?');
+}
 const statusDisplay = document.getElementById('status-display');
 const uidInput = document.getElementById('uid');
 const holderNameInput = document.getElementById('holderName');
@@ -650,13 +655,18 @@ function renderProducts() {
     
     card.innerHTML = `
       ${categoryBadge}
-      <span class="product-icon">${product.icon}</span>
+      <span class="product-icon"></span>
       <div class="product-name">${product.name}</div>
       <div class="product-price">$${product.price.toFixed(2)}</div>
       <div class="product-add-hint">${inCart ? `${inCart.qty} in cart` : 'Click to add'}</div>
     `;
     card.addEventListener('click', () => addToCart(product));
     productGrid.appendChild(card);
+    
+    // Add icon
+    const iconSpan = card.querySelector('.product-icon');
+    const iconEl = createIcon(product.iconSvg);
+    iconSpan.appendChild(iconEl);
   });
 }
 
@@ -725,7 +735,7 @@ function updateCartUI() {
     cart.forEach(item => {
       html += `
         <div class="cart-item">
-          <span class="cart-item-icon">${item.product.icon}</span>
+          <span class="cart-item-icon"></span>
           <div class="cart-item-info">
             <div class="cart-item-name">${item.product.name}</div>
             <div class="cart-item-price">$${item.product.price.toFixed(2)} each</div>
@@ -741,6 +751,15 @@ function updateCartUI() {
       `;
     });
     cartItemsEl.innerHTML = html;
+
+    // Add icons to cart items
+    cart.forEach((item, index) => {
+      const iconSpan = cartItemsEl.querySelectorAll('.cart-item-icon')[index];
+      if (iconSpan) {
+        const iconEl = createIcon(item.product.iconSvg);
+        iconSpan.appendChild(iconEl);
+      }
+    });
 
     cartSummaryEl.style.display = 'block';
     cartTotalItemsEl.textContent = count;

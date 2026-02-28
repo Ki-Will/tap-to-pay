@@ -1,18 +1,30 @@
 :root {
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
-    --success: #4ade80;
-    --danger: #ef4444;
-    --warning: #fbbf24;
-    --bg-dark: #0f172a;
-    --bg-darker: #020617;
-    --card-bg: rgba(255, 255, 255, 0.05);
-    --text-main: #f8fafc;
+    /* Brand / Primary */
+    --primary: #5b8cff;
+    --primary-hover: #3f6ef5;
+
+    /* Status Colors */
+    --success: #22c55e;
+    --danger: #f43f5e;
+    --warning: #f59e0b;
+
+    /* Background System */
+    --bg-dark: #0b1120;
+    --bg-darker: #070c18;
+
+    /* Card / Glass */
+    --card-bg: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    /* Typography */
+    --text-main: #f1f5f9;
     --text-muted: #94a3b8;
-    --glass-border: rgba(255, 255, 255, 0.1);
+
+    /* Checkout Accent (Tap Success Highlight) */
+    --checkout-green: #14f195;
+    --checkout-green-hover: #0fdc85;
+
     --sidebar-width: 280px;
-    --checkout-green: #10b981;
-    --checkout-green-hover: #059669;
 }
 
 * {
@@ -168,7 +180,11 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nebula', 'Outfit', sans-serif;
+  color: var(--text-main);
+}
+
 .sidebar {
     width: var(--sidebar-width);
     background: var(--bg-darker);
