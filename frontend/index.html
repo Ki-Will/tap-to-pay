@@ -14,26 +14,55 @@
 </head>
 
 <body>
-  <!-- Role Selection Popup -->
-  <div id="role-selection-overlay" class="role-overlay">
-    <div class="role-popup">
-      <div class="role-popup-header">
-        <h2>Welcome to TAP & PAY</h2>
-        <p>Please select your role to continue</p>
+  <!-- Auth Overlay -->
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-popup">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
       </div>
-      <div class="role-options">
-        <div class="role-card" data-role="admin">
-          <div class="role-icon">👨‍💼</div>
-          <h3>Administrator</h3>
-          <p>Full access to all features including system settings and configurations</p>
-          <button class="role-select-btn">Select</button>
-        </div>
-        <div class="role-card" data-role="user">
-          <div class="role-icon">👤</div>
-          <h3>Normal User</h3>
-          <p>Access to top-up, marketplace, and transaction history</p>
-          <button class="role-select-btn">Select</button>
-        </div>
+      
+      <!-- Login Form -->
+      <div id="login-form" class="auth-form active">
+        <h2>Login</h2>
+        <form id="loginForm">
+          <div class="input-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" required>
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required>
+          </div>
+          <button type="submit" class="auth-btn">Login</button>
+        </form>
+        <div id="login-error" class="auth-error"></div>
+      </div>
+      
+      <!-- Signup Form -->
+      <div id="signup-form" class="auth-form">
+        <h2>Sign Up</h2>
+        <form id="signupForm">
+          <div class="input-group">
+            <label for="signup-username">Username</label>
+            <input type="text" id="signup-username" required>
+          </div>
+          <div class="input-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" required>
+          </div>
+          <div class="input-group">
+            <label class="checkbox-label">
+              <select id="signup-role">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select> Role
+            </label>
+            <span class="admin-message">Admin signup is available</span>
+          </div>
+          <button type="submit" class="auth-btn">Sign Up</button>
+        </form>
+        <div id="signup-error" class="auth-error"></div>
       </div>
     </div>
   </div>
@@ -96,6 +125,10 @@
           <span class="nav-icon">⚙️</span>
           <span class="nav-text">Settings</span>
         </a>
+        <button id="logout-btn" class="logout-btn">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-text">Logout</span>
+        </button>
       </nav>
 
       <div class="sidebar-support">

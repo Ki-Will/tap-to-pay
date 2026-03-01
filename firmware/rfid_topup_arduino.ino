@@ -14,7 +14,7 @@ const uint32_t WIFI_TIMEOUT_MS = 30000;
 // ----------------- MQTT Configuration -----------------
 const char* mqtt_server = "broker.benax.rw";
 const uint16_t MQTT_PORT = 1883;
-const char* team_id = "team_rdf";
+const char* team_id = "vikings";
 
 // ----------------- MQTT Topics -----------------
 String topic_status   = "rfid/" + String(team_id) + "/card/status";

@@ -6,6 +6,30 @@ function createIcon(svgString) {
   div.innerHTML = svgString.trim();
   return div.firstElementChild || document.createTextNode('?');
 }
+
+// ==================== Auth Functions ====================
+function showAuth() {
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.querySelector('.dashboard').style.display = 'none';
+}
+
+function hideAuth() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.querySelector('.dashboard').style.display = 'flex';
+}
+
+function checkAuth() {
+  const token = localStorage.getItem('token');
+  if (token) {
+    userRole = localStorage.getItem('role');
+    selectRole(userRole);
+    hideAuth();
+  } else {
+    showAuth();
+  }
+}
+
+// ==================== DOM Elements ====================
 const statusDisplay = document.getElementById('status-display');
 const uidInput = document.getElementById('uid');
 const holderNameInput = document.getElementById('holderName');
@@ -14,10 +38,6 @@ const topupBtn = document.getElementById('topup-btn');
 const cardVisual = document.getElementById('card-visual');
 const cardUidDisplay = document.getElementById('card-uid-display');
 const cardBalanceDisplay = document.getElementById('card-balance-display');
-
-// Role selection elements
-const roleOverlay = document.getElementById('role-selection-overlay');
-const roleCards = document.querySelectorAll('.role-card');
 
 // Passcode modal elements
 const passcodeModal = document.getElementById('passcode-modal');
@@ -479,51 +499,75 @@ function hideNewCardPasscodeSection() {
 // Initialize setup passcode input
 setupNewCardPasscodeInput();
 
-// ==================== Role Selection ====================
-roleCards.forEach(card => {
-  card.addEventListener('click', () => {
-    const role = card.dataset.role;
-    selectRole(role);
-  });
-  
-  // Also handle button click
-  const btn = card.querySelector('.role-select-btn');
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const role = card.dataset.role;
-    selectRole(role);
+// ==================== Auth Event Listeners ====================
+// Auth tabs
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    tab.classList.add('active');
+    const formId = tab.dataset.tab + '-form';
+    document.getElementById(formId).classList.add('active');
   });
 });
 
-function selectRole(role) {
-  userRole = role;
-  
-  // Hide the overlay
-  roleOverlay.classList.add('hidden');
-  
-  // If normal user, hide settings navigation and section
-  if (role === 'user') {
-    const settingsNavItem = document.querySelector('.nav-item[data-section="settings"]');
-    if (settingsNavItem) {
-      settingsNavItem.style.display = 'none';
+// Login form
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  try {
+    const res = await fetch(`${BACKEND_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role);
+      userRole = data.role;
+      selectRole(data.role);
+      hideAuth();
+    } else {
+      document.getElementById('login-error').textContent = data.error;
     }
+  } catch (err) {
+    document.getElementById('login-error').textContent = 'Network error';
     
-    const settingsSection = document.getElementById('section-settings');
-    if (settingsSection) {
-      settingsSection.style.display = 'none';
-    }
   }
-  
-  // Store role in sessionStorage (optional, for persistence during session)
-  sessionStorage.setItem('userRole', role);
-}
+});
 
-// Check if role was previously selected in this session
-window.addEventListener('DOMContentLoaded', () => {
-  const savedRole = sessionStorage.getItem('userRole');
-  if (savedRole) {
-    selectRole(savedRole);
+// Signup form
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('signup-username').value;
+  const password = document.getElementById('signup-password').value;
+  const role = document.getElementById('signup-role').value;
+  try {
+    const res = await fetch(`${BACKEND_URL}/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('signup-error').textContent = 'User created. Please login.';
+      // Switch to login tab
+      document.querySelector('.auth-tab[data-tab="login"]').click();
+    } else {
+      document.getElementById('signup-error').textContent = data.error;
+    }
+  } catch (err) {
+    document.getElementById('signup-error').textContent = 'Network error';
   }
+});
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+  localStorage.clear();
+  userRole = null;
+  showAuth();
 });
 
 // ==================== Navigation ====================
@@ -585,10 +629,19 @@ setInterval(() => {
 // Set backend URL in settings
 if (settingsBackendUrl) settingsBackendUrl.textContent = BACKEND_URL;
 
+function getAuthHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // ==================== Product Grid (Marketplace) ====================
 async function loadProducts() {
   try {
-    const response = await fetch(`${BACKEND_URL}/products`);
+    const response = await fetch(`${BACKEND_URL}/products`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Failed to load products');
     allProducts = await response.json();
   } catch (err) {
