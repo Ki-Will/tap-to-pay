@@ -16,12 +16,15 @@ router.post('/signup', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log('Login attempt for:', username);
   try {
     const user = await UserService.authenticateUser(username, password);
     const token = UserService.generateToken(user);
+    console.log('Login success for:', username);
     res.json({ token, role: user.role });
   } catch (err) {
-    res.status(401).json({ error: 'Invalid credentials' });
+    console.log('Login failed for:', username, 'error:', err.message);
+    res.status(401).json({ error: 'Invalid credentials', err : err.message });
   }
 });
 
