@@ -57,8 +57,8 @@ function Sidebar({ currentSection, onSectionChange, onLogout }) {
           <div className="support-icon">💬</div>
           <h4>Need Help?</h4>
           <p>Get in touch with our support team for assistance.</p>
-          <a href="mailto:byiringiroaloys8@gmail.com" className="support-link">
-            <span>✉️</span> support@aloys.work
+          <a href="mailto:irakozep03@gmail.com" className="support-link">
+            <span>✉️</span> irakozep03@gmail.com
           </a>
         </div>
       </div>

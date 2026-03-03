@@ -1,3 +1,6 @@
+import TopupSection from './TopupSection'
+import MarketplaceSection from './MarketplaceSection'
+
 function MainContent({ currentSection, backendUrl, socket }) {
   return (
     <main className="main-content">
