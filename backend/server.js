@@ -31,7 +31,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT1 || 8228;
 const TEAM_ID = "vikings";
-const MQTT_BROKER = "mqtt://157.173.101.159:1883";
+// const MQTT_BROKER = "mqtt://157.173.101.159:1883";
+const MQTT_BROKER = "mqtt://broker.hivemq.com:1883";
 const MONGO_URI = process.env.MONGODB_URI;
 
 // MongoDB Connection
