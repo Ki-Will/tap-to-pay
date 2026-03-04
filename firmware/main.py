@@ -7,11 +7,11 @@ from mfrc522 import MFRC522
 import binascii
 
 # ----------------- WiFi Configuration -----------------
-ssid = 'RCA'
-password = '@RcaNyabihu2023'
+ssid = 'EdNet'
+password = 'Huawei@123'
 
 # ----------------- MQTT Configuration -----------------
-# mqtt_server = "broker.benax.rw"
+# mqtt_server = "mqtt://157.173.101.159"
 mqtt_server = "broker.hivemq.com"
 MQTT_PORT = 1883
 team_id = "vikings"
