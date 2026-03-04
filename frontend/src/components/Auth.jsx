@@ -25,8 +25,9 @@ function Auth({ onLogin, backendUrl }) {
       } else {
         setLoginError(data.error || 'Login failed')
       }
-    } catch {
+    } catch (err){
       setLoginError('Network error')
+      console.log({'error': err })
     }
   }
 
@@ -48,8 +49,9 @@ function Auth({ onLogin, backendUrl }) {
       } else {
         setSignupError(data.error || 'Signup failed')
       }
-    } catch {
+    } catch (err){
       setSignupError('Network error')
+      console.log({'error': err })
     }
   }
 

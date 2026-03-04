@@ -22,30 +22,34 @@ function Sidebar({ currentSection, onSectionChange, onLogout }) {
           <span className="nav-icon">💳</span>
           <span className="nav-text">Top Up Card</span>
         </a>
-        <a
-          href="#"
-          className={`nav-item ${currentSection === 'marketplace' ? 'active' : ''}`}
-          onClick={(e) => { e.preventDefault(); onSectionChange('marketplace'); }}
-        >
-          <span className="nav-icon">🛒</span>
-          <span className="nav-text">Marketplace</span>
-        </a>
-        <a
-          href="#"
-          className={`nav-item ${currentSection === 'history' ? 'active' : ''}`}
-          onClick={(e) => { e.preventDefault(); onSectionChange('history'); }}
-        >
-          <span className="nav-icon">📊</span>
-          <span className="nav-text">Transactions</span>
-        </a>
-        <a
-          href="#"
-          className={`nav-item ${currentSection === 'settings' ? 'active' : ''}`}
-          onClick={(e) => { e.preventDefault(); onSectionChange('settings'); }}
-        >
-          <span className="nav-icon">⚙️</span>
-          <span className="nav-text">Settings</span>
-        </a>
+        {userRole !== 'admin' && (
+          <>
+            <a
+              href="#"
+              className={`nav-item ${currentSection === 'marketplace' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); onSectionChange('marketplace'); }}
+            >
+              <span className="nav-icon">🛒</span>
+              <span className="nav-text">Marketplace</span>
+            </a>
+            <a
+              href="#"
+              className={`nav-item ${currentSection === 'history' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); onSectionChange('history'); }}
+            >
+              <span className="nav-icon">📊</span>
+              <span className="nav-text">Transactions</span>
+            </a>
+            <a
+              href="#"
+              className={`nav-item ${currentSection === 'settings' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); onSectionChange('settings'); }}
+            >
+              <span className="nav-icon">⚙️</span>
+              <span className="nav-text">Settings</span>
+            </a>
+          </>
+        )}
         <button className="logout-btn" onClick={onLogout}>
           <span className="nav-icon">🚪</span>
           <span className="nav-text">Logout</span>

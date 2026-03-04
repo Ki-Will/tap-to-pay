@@ -2,8 +2,8 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import MainContent from './MainContent'
 
-function Dashboard({ onLogout, backendUrl, socket }) {
-  const [currentSection, setCurrentSection] = useState('topup')
+function Dashboard({ onLogout, backendUrl, socket, userRole }) {
+  const [currentSection, setCurrentSection] = useState(userRole === 'admin' ? 'topup' : 'marketplace')
 
   return (
     <div className="dashboard">
