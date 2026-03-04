@@ -29,11 +29,25 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Authentication middleware
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
 const PORT = process.env.PORT1 || 8228;
 const TEAM_ID = "vikings";
 // const MQTT_BROKER = "mqtt://157.173.101.159:1883";
 const MQTT_BROKER = "mqtt://broker.hivemq.com:1883";
-const MONGO_URI = process.env.MONGODB_URI;
+const MONGO_URI = process.env.MONGODB_URI || "mongodb+srv://irakozep03_db_user:s5OdoCJx8Gq0fOjF@rfid-tap-pay.igoregv.mongodb.net/?appName=rfid-tap-pay";
+const SECRET_KEY = process.env.JWT_SECRET || 'secret';
 
 // MongoDB Connection
 connectDB();
@@ -66,6 +80,7 @@ async function verifyPasscode(inputPasscode, hashedPasscode) {
 const transactionSchema = new mongoose.Schema({
   uid: { type: String, required: true, index: true },
   holderName: { type: String, required: true },
+  userId: { type: String, required: true }, // username of the user who performed the transaction
   type: { type: String, enum: ['topup', 'debit'], default: 'topup' },
   amount: { type: Number, required: true },
   balanceBefore: { type: Number, required: true },
@@ -97,19 +112,42 @@ mqttClient.on('connect', () => {
   mqttClient.subscribe(TOPIC_REMOVED);
 });
 
-mqttClient.on('message', (topic, message) => {
+mqttClient.on('message',async (topic, message) => {
   console.log(`Received message on ${topic}: ${message.toString()}`);
   try {
     const payload = JSON.parse(message.toString());
 
     if (topic === TOPIC_STATUS) {
-      io.emit('card-status', payload);
+      // Check if card exists in DB
+      const existingCard = await Card.findOne({ uid: payload.uid });
+      if (existingCard) {
+        // Emit with DB data
+        io.emit('card-status', {
+          uid: payload.uid,
+          balance: existingCard.balance,
+          holderName: existingCard.holderName,
+          status: payload.status,
+          present: payload.present,
+          ts: payload.ts
+        });
+        console.log(`Emitted card-status for existing card: ${payload.uid}`);
+      } else {
+        // Emit with ESP data, no holderName
+        io.emit('card-status', {
+          ...payload,
+          holderName: null // Indicate new card
+        });
+        console.log(`Emitted card-status for new card: ${payload.uid}`);
+      }
     } else if (topic === TOPIC_BALANCE) {
       io.emit('card-balance', payload);
+      console.log(`Emitted card-balance: ${JSON.stringify(payload)}`);
     } else if (topic === TOPIC_PAYMENT) {
       io.emit('payment-result', payload);
+      console.log(`Emitted payment-result: ${JSON.stringify(payload)}`);
     } else if (topic === TOPIC_REMOVED) {
       io.emit('card-removed', payload);
+      console.log(`Emitted card-removed: ${JSON.stringify(payload)}`);
     }
   } catch (err) {
     console.error('Failed to parse MQTT message:', err);
@@ -117,52 +155,55 @@ mqttClient.on('message', (topic, message) => {
 });
 
 // HTTP Endpoints
-app.post('/topup', async (req, res) => {
+app.post('/topup', authenticate, async (req, res) => {
   const { uid, amount, holderName, passcode } = req.body;
+  console.log(`Topup request: uid=${uid}, amount=${amount}, holderName=${holderName}`);
 
   if (!uid || amount === undefined) {
+    console.log('Topup failed: UID and amount required');
     return res.status(400).json({ error: 'UID and amount are required' });
   }
 
   try {
+    console.log('Finding card for uid:', uid);
     // Find or create card
     let card = await Card.findOne({ uid });
     const balanceBefore = card ? card.balance : 0;
+    console.log('Card found:', card ? 'existing' : 'not found', 'balanceBefore:', balanceBefore);
 
     if (!card) {
       if (!holderName) {
+        console.log('Topup failed: Holder name required for new cards');
         return res.status(400).json({ error: 'Holder name is required for new cards' });
       }
-      
-      // For new cards, passcode is required
-      if (!passcode || !/^\d{6}$/.test(passcode)) {
-        return res.status(400).json({ error: 'A 6-digit passcode is required for new cards' });
-      }
-      
-      // Hash the passcode
-      const hashedPasscode = await hashPasscode(passcode);
       
       card = new Card({ 
         uid, 
         holderName, 
         balance: amount, 
         lastTopup: amount,
-        passcode: hashedPasscode,
-        passcodeSet: true
+        passcode: null,
+        passcodeSet: false
       });
+      console.log('Created new card without passcode');
     } else {
+      console.log('Updating existing card balance');
       // Cumulative topup: add to existing balance
       card.balance += amount;
       card.lastTopup = amount;
       card.updatedAt = Date.now();
     }
 
+    console.log('Saving card');
     await card.save();
+    console.log('Card saved successfully');
 
+    console.log('Creating transaction record');
     // Create transaction record
     const transaction = new Transaction({
       uid: card.uid,
       holderName: card.holderName,
+      userId: req.user.username,
       type: 'topup',
       amount: amount,
       balanceBefore: balanceBefore,
@@ -170,7 +211,9 @@ app.post('/topup', async (req, res) => {
       description: `Top-up of $${amount.toFixed(2)}`
     });
     await transaction.save();
+    console.log('Transaction saved successfully');
 
+    console.log('Publishing to MQTT');
     // Publish to MQTT with updated balance
     const payload = JSON.stringify({ uid, amount: card.balance });
     mqttClient.publish(TOPIC_TOPUP, payload, (err) => {
@@ -181,6 +224,11 @@ app.post('/topup', async (req, res) => {
       console.log(`Published topup for ${uid} (${card.holderName}): ${card.balance}`);
     });
 
+    // Emit balance update to frontend
+    io.emit('card-balance', { uid: card.uid, balance: card.balance });
+    console.log(`Emitted card-balance for ${card.uid}: ${card.balance}`);
+
+    console.log('Topup successful, sending response');
     res.json({
       success: true,
       message: 'Topup successful',
@@ -204,7 +252,7 @@ app.post('/topup', async (req, res) => {
 });
 
 // Payment / Debit endpoint
-app.post('/pay', async (req, res) => {
+app.post('/pay', authenticate, async (req, res) => {
   const { uid, productId, amount, description, passcode } = req.body;
 
   if (!uid || (!productId && amount === undefined)) {
@@ -274,6 +322,7 @@ app.post('/pay', async (req, res) => {
     const transaction = new Transaction({
       uid: card.uid,
       holderName: card.holderName,
+      userId: req.user.username,
       type: 'debit',
       amount: payAmount,
       balanceBefore: balanceBefore,
@@ -488,6 +537,24 @@ app.get('/transactions', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
     const transactions = await Transaction.find()
+      .sort({ timestamp: -1 })
+      .limit(limit);
+    res.json(transactions);
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+// Get user transactions (filtered by user)
+app.get('/user/transactions', authenticate, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    let query = {};
+    if (req.user.role !== 'admin') {
+      query.userId = req.user.username;
+    }
+    const transactions = await Transaction.find(query)
       .sort({ timestamp: -1 })
       .limit(limit);
     res.json(transactions);
