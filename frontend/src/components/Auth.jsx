@@ -135,8 +135,8 @@ function Auth({ onLogin, backendUrl }) {
                     value={signupData.role}
                     onChange={(e) => setSignupData({ ...signupData, role: e.target.value })}
                   >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
+                    <option value="user">SalesPerson</option>
+                    <option value="admin">Agent</option>
                   </select> Role
                 </label>
                 <span className="admin-message">Select role</span>
