@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'react-toastify'
 
 function Auth({ onLogin, backendUrl }) {
   const [activeTab, setActiveTab] = useState('login')
@@ -18,12 +19,13 @@ function Auth({ onLogin, backendUrl }) {
         body: JSON.stringify(loginData)
       })
       const data = await res.json()
-      console.log('login data:', data)
       if (res.ok) {
         localStorage.setItem('token', data.token)
         localStorage.setItem('role', data.role)
+        toast.success('Login successful!')
         onLogin(data.role)
       } else {
+        toast.error(data.error || 'Login failed')
         setLoginError(data.error || 'Login failed')
       }
     } catch (err){
@@ -44,10 +46,12 @@ function Auth({ onLogin, backendUrl }) {
       })
       const data = await res.json()
       if (res.ok) {
-        setSignupSuccess('User created. Please login.')
+        toast.success('Signup successful!')
+        setSignupSuccess('Account created successfully! Please login.')
         setActiveTab('login')
         setSignupData({ username: '', password: '', role: 'user' })
       } else {
+        toast.error('Signup failed: ' + (data.error || 'Unknown error'))
         setSignupError(data.error || 'Signup failed')
       }
     } catch (err){
