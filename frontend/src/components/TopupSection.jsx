@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 
 function TopupSection({ backendUrl, socket }) {
   const [_lastScannedUid, setLastScannedUid] = useState(null)
@@ -23,15 +24,28 @@ function TopupSection({ backendUrl, socket }) {
     const handleCardBalanceUpdated = (data) => {
       if (currentCardData && currentCardData.uid === data.uid) {
         setCurrentCardData({ ...currentCardData, balance: data.balance })
+        toast.info(`Balance updated: $${data.balance.toFixed(2)}`)
       }
     }
 
-    socket.on('card_scanned', handleCardScanned)
-    socket.on('card_balance_updated', handleCardBalanceUpdated)
+    const handleCardRemoved = (data) => {
+      if (currentCardData && currentCardData.uid === data.uid) {
+        setCurrentCardData(null)
+        setUid('')
+        setHolderName('')
+        setCardPresent(false)
+        setLastScannedUid(null)
+      }
+    }
+
+    socket.on('card-status', handleCardScanned)
+    socket.on('card-balance', handleCardBalanceUpdated)
+    socket.on('card-removed', handleCardRemoved)
 
     return () => {
-      socket.off('card_scanned', handleCardScanned)
-      socket.off('card_balance_updated', handleCardBalanceUpdated)
+      socket.off('card-status', handleCardScanned)
+      socket.off('card-balance', handleCardBalanceUpdated)
+      socket.off('card-removed', handleCardRemoved)
     }
   }, [socket, currentCardData])
 
@@ -47,11 +61,17 @@ function TopupSection({ backendUrl, socket }) {
         body: JSON.stringify({ uid, holderName: holderName || undefined, amount: parseFloat(amount) })
       })
       if (res.ok) {
-        // success
+        const data = await res.json()
+        console.log('Topup response:', data)
         setAmount('')
+        if (data.card) {
+          setCurrentCardData(data.card)
+          setUid(data.card.uid)
+          setHolderName(data.card.holderName)
+        }
       } else {
-        // error
-        alert('Topup failed')
+        const errorData = await res.json()
+        alert('Topup failed: ' + (errorData.error || 'Unknown error'))
       }
     } catch {
       alert('Network error')
