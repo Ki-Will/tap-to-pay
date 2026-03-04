@@ -5,7 +5,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+    await mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://irakozep03_db_user:s5OdoCJx8Gq0fOjF@rfid-tap-pay.igoregv.mongodb.net/?appName=rfid-tap-pay", {
       ssl: true,
       tls: true,
       tlsAllowInvalidCertificates: true,

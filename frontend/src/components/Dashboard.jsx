@@ -11,11 +11,13 @@ function Dashboard({ onLogout, backendUrl, socket, userRole }) {
         currentSection={currentSection}
         onSectionChange={setCurrentSection}
         onLogout={onLogout}
+        userRole={userRole}
       />
       <MainContent
         currentSection={currentSection}
         backendUrl={backendUrl}
         socket={socket}
+        userRole={userRole}
       />
     </div>
   )

@@ -3,7 +3,7 @@ import { useState } from 'react'
 function Auth({ onLogin, backendUrl }) {
   const [activeTab, setActiveTab] = useState('login')
   const [loginData, setLoginData] = useState({ username: '', password: '' })
-  const [signupData, setSignupData] = useState({ username: '', password: '', role: 'user' })
+  const [signupData, setSignupData] = useState({ username: '', password: '', role: '' })
   const [loginError, setLoginError] = useState('')
   const [signupError, setSignupError] = useState('')
   const [signupSuccess, setSignupSuccess] = useState('')
@@ -18,6 +18,7 @@ function Auth({ onLogin, backendUrl }) {
         body: JSON.stringify(loginData)
       })
       const data = await res.json()
+      console.log('login data:', data)
       if (res.ok) {
         localStorage.setItem('token', data.token)
         localStorage.setItem('role', data.role)
@@ -138,7 +139,7 @@ function Auth({ onLogin, backendUrl }) {
                     <option value="admin">Admin</option>
                   </select> Role
                 </label>
-                <span className="admin-message">Admin signup is available</span>
+                <span className="admin-message">Select role</span>
               </div>
               <button type="submit" className="auth-btn">Sign Up</button>
             </form>

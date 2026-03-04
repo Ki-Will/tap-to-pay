@@ -1,4 +1,10 @@
-function Sidebar({ currentSection, onSectionChange, onLogout }) {
+function Sidebar({ currentSection, onSectionChange, onLogout, userRole }) {
+
+  const isAdmin = userRole === 'admin'
+  const isUser = userRole === 'user'
+
+  console.log('userRole:', userRole, 'isAdmin:', isAdmin, 'isUser:', isUser)
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -14,42 +20,49 @@ function Sidebar({ currentSection, onSectionChange, onLogout }) {
       </div>
 
       <nav className="sidebar-nav">
+        {/* Admin only */}
+        {isAdmin && (
+          <a
+            href="#"
+            className={`nav-item ${currentSection === 'topup' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); onSectionChange('topup'); }}
+          >
+            <span className="nav-icon">💳</span>
+            <span className="nav-text">Top-Up</span>
+          </a>
+        )}
+
+        {/* User only */}
+        {isUser && (
+          <a
+            href="#"
+            className={`nav-item ${currentSection === 'marketplace' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); onSectionChange('marketplace'); }}
+          >
+            <span className="nav-icon">🛒</span>
+            <span className="nav-text">Marketplace</span>
+          </a>
+        )}
+
+        {/* Both */}
+        {isUser && <a
+          href="#"
+          className={`nav-item ${currentSection === 'history' ? 'active' : ''}`}
+          onClick={(e) => { e.preventDefault(); onSectionChange('history'); }}
+        >
+          <span className="nav-icon">📊</span>
+          <span className="nav-text">History</span>
+        </a>}
+
         <a
           href="#"
-          className={`nav-item ${currentSection === 'topup' ? 'active' : ''}`}
-          onClick={(e) => { e.preventDefault(); onSectionChange('topup'); }}
+          className={`nav-item ${currentSection === 'settings' ? 'active' : ''}`}
+          onClick={(e) => { e.preventDefault(); onSectionChange('settings'); }}
         >
-          <span className="nav-icon">💳</span>
-          <span className="nav-text">Top Up Card</span>
+          <span className="nav-icon">⚙️</span>
+          <span className="nav-text">Settings</span>
         </a>
-        {userRole !== 'admin' && (
-          <>
-            <a
-              href="#"
-              className={`nav-item ${currentSection === 'marketplace' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); onSectionChange('marketplace'); }}
-            >
-              <span className="nav-icon">🛒</span>
-              <span className="nav-text">Marketplace</span>
-            </a>
-            <a
-              href="#"
-              className={`nav-item ${currentSection === 'history' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); onSectionChange('history'); }}
-            >
-              <span className="nav-icon">📊</span>
-              <span className="nav-text">Transactions</span>
-            </a>
-            <a
-              href="#"
-              className={`nav-item ${currentSection === 'settings' ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); onSectionChange('settings'); }}
-            >
-              <span className="nav-icon">⚙️</span>
-              <span className="nav-text">Settings</span>
-            </a>
-          </>
-        )}
+
         <button className="logout-btn" onClick={onLogout}>
           <span className="nav-icon">🚪</span>
           <span className="nav-text">Logout</span>

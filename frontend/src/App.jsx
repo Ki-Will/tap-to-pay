@@ -8,20 +8,23 @@ const socket = window.io(BACKEND_URL)
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-
+  const [userRole, setUserRole] = useState('user');
+  
   useEffect(() => {
     // Check if already logged in
     const token = localStorage.getItem('token')
-    const _role = localStorage.getItem('role')
-    if (token) {
+    const role = localStorage.getItem('role')
+    if (token && role) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthenticated(true)
+      setUserRole(role)
     }
   }, [])
 
   // eslint-disable-next-line no-unused-vars
-  const handleLogin = (_role) => {
+  const handleLogin = (role) => {
     setIsAuthenticated(true)
+    setUserRole(role)
   }
 
   const handleLogout = () => {
@@ -34,7 +37,7 @@ function App() {
       {!isAuthenticated ? (
         <Auth onLogin={handleLogin} backendUrl={BACKEND_URL} />
       ) : (
-        <Dashboard onLogout={handleLogout} backendUrl={BACKEND_URL} socket={socket} />
+        <Dashboard onLogout={handleLogout} backendUrl={BACKEND_URL} socket={socket} userRole={userRole}/>
       )}
     </div>
   )
