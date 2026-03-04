@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import Auth from './components/Auth'
 import Dashboard from './components/Dashboard'
 import './App.css'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
+// const BACKEND_URL = 'http://157.173.101.159:8228'
 const BACKEND_URL = 'http://localhost:8228'
 const socket = window.io(BACKEND_URL)
 
@@ -39,6 +42,7 @@ function App() {
       ) : (
         <Dashboard onLogout={handleLogout} backendUrl={BACKEND_URL} socket={socket} userRole={userRole}/>
       )}
+      <ToastContainer />
     </div>
   )
 }
