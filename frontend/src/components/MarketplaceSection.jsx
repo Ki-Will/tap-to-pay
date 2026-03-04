@@ -1,9 +1,43 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 
-function MarketplaceSection({ backendUrl }) {
+function MarketplaceSection({ backendUrl, socket }) {
   const [allProducts, setAllProducts] = useState([])
   const [cart, setCart] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [currentCardData, setCurrentCardData] = useState(null)
+  const [cardPresent, setCardPresent] = useState(false)
+
+  useEffect(() => {
+    const handleCardScanned = (data) => {
+      setCurrentCardData(data)
+      setCardPresent(true)
+    }
+
+    const handleCardBalanceUpdated = (data) => {
+      if (currentCardData && currentCardData.uid === data.uid) {
+        setCurrentCardData({ ...currentCardData, balance: data.balance })
+        toast.info(`Balance updated: $${data.balance.toFixed(2)}`)
+      }
+    }
+
+    const handleCardRemoved = (data) => {
+      if (currentCardData && currentCardData.uid === data.uid) {
+        setCurrentCardData(null)
+        setCardPresent(false)
+      }
+    }
+
+    socket.on('card-status', handleCardScanned)
+    socket.on('card-balance', handleCardBalanceUpdated)
+    socket.on('card-removed', handleCardRemoved)
+
+    return () => {
+      socket.off('card-status', handleCardScanned)
+      socket.off('card-balance', handleCardBalanceUpdated)
+      socket.off('card-removed', handleCardRemoved)
+    }
+  }, [socket, currentCardData])
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -67,7 +101,34 @@ function MarketplaceSection({ backendUrl }) {
     }).filter(Boolean))
   }
 
-  const getCartTotal = () => cart.reduce((sum, item) => sum + item.product.price * item.qty, 0)
+  const getCartTotal = () => cart.reduce((total, item) => total + (item.product.price * item.qty), 0)
+
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    if (!currentCardData || !cardPresent || cart.length === 0) return
+    const amount = getCartTotal()
+    try {
+      const res = await fetch(`${backendUrl}/pay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ uid: currentCardData.uid, amount, description: 'Marketplace purchase' })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        console.log('Purchase response:', data)
+        toast.success('Purchase successful!')
+        setCart([])
+      } else {
+        const errorData = await res.json()
+        toast.error('Purchase failed: ' + (errorData.error || 'Unknown error'))
+      }
+    } catch {
+      toast.error('Network error')
+    }
+  }
 
   const getCartItemCount = () => cart.reduce((sum, item) => sum + item.qty, 0)
 
@@ -131,14 +192,14 @@ function MarketplaceSection({ backendUrl }) {
           )}
         </div>
         {cart.length > 0 && (
-          <div className="cart-summary">
+          <div className="cart-summary" style={{ fontSize: 'small', padding: '5px' }}>
             <div className="cart-summary-row cart-total-row">
               <span>Total</span>
               <span>${getCartTotal().toFixed(2)}</span>
             </div>
           </div>
         )}
-        <button className="checkout-btn" disabled={cart.length === 0}>
+        <button className="checkout-btn" disabled={cart.length === 0} onClick={handleCheckout}>
           <span className="btn-icon">💳</span> Checkout & Pay
         </button>
         <p className="checkout-hint">Scan your card first to enable checkout</p>
